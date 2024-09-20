@@ -8,6 +8,53 @@
 
 #define PORT 8080
 
+char* sendHttp(int socket) {
+    char *header = "HTTP/1.1 200 =OK\r\n"
+                    "Content-Type: text/html\r\n"
+                    "Connection: close\r\n"
+                    "\r\n";
+    
+    char *content = "<html>"
+                    "<head><title>Test</title></head>"
+                    "<body>"
+                    "<h1>Hello there</h1>"
+                    "</body>"
+                    "</html>";
+
+    send(socket,header,strlen(header),0);
+    send(socket,content,strlen(content),0);
+    
+}
+
+int getInput(int socket, struct sockaddr_in adress) {
+    int server_fd, valread;
+    char buffer[1024] = {0};
+    
+    while (1)
+    {
+        valread = read( socket, buffer, 1024);
+        if (valread > 0) {
+            printf("%s", buffer);
+            char sign[8] = "return: ";
+            int tot_len = strlen(sign) + strlen(buffer);
+            char send_buffer[tot_len];
+            strcpy(send_buffer,sign);
+            strcat(send_buffer,buffer);                
+
+            send(socket,send_buffer, strlen(send_buffer),0);
+            memset(buffer,0,sizeof(buffer));
+            memset(send_buffer,0,sizeof(send_buffer));
+        }
+        else {
+            printf("Disconnection from %s on port %d\n", inet_ntoa((struct in_addr)adress.sin_addr), ntohs(adress.sin_port));
+            close(socket);
+            break;
+
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char const *argv[]) {
     int server_fd, new_socket, valread;
     struct sockaddr_in adress;
@@ -47,21 +94,10 @@ int main(int argc, char const *argv[]) {
             exit(EXIT_FAILURE);
         }
         printf("Connection form %s on port %d\n", inet_ntoa((struct in_addr)adress.sin_addr), ntohs(adress.sin_port));
-        while (1)
-        {
-            valread = read( new_socket, buffer, 1024);
-            if (valread > 0) {
-                printf("%s", buffer);
-                send(new_socket,buffer, strlen(buffer),0);
-                memset(buffer,0,sizeof(buffer));
-            }
-            else {
-                printf("Disconnection from %s on port %d\n", inet_ntoa((struct in_addr)adress.sin_addr), ntohs(adress.sin_port));
-                close(new_socket);
-                break;
+        sendHttp(new_socket);
+        close(new_socket);
 
-            }
-        }
+        
     }
     return 0;
 
