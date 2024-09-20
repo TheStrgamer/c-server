@@ -53,6 +53,7 @@ int main(int argc, char const *argv[]) {
             if (valread > 0) {
                 printf("%s", buffer);
                 send(new_socket,buffer, strlen(buffer),0);
+                memset(buffer,0,sizeof(buffer));
             }
             else {
                 printf("Disconnection from %s on port %d\n", inet_ntoa((struct in_addr)adress.sin_addr), ntohs(adress.sin_port));
