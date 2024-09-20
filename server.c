@@ -7,22 +7,40 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
+#define INDEX_FILE "index.html"
 
-char* sendHttp(int socket) {
+void sendHttp(int socket) {
     char *header = "HTTP/1.1 200 =OK\r\n"
                     "Content-Type: text/html\r\n"
                     "Connection: close\r\n"
                     "\r\n";
-    
-    char *content = "<html>"
-                    "<head><title>Test</title></head>"
-                    "<body>"
-                    "<h1>Hello there</h1>"
-                    "</body>"
-                    "</html>";
-
     send(socket,header,strlen(header),0);
-    send(socket,content,strlen(content),0);
+
+    
+    FILE *file = fopen(INDEX_FILE, "r");
+    if (file == NULL){
+
+        char *content = "<html>"
+                        "<head><title>Test</title></head>"
+                        "<body>"
+                        "<h1>Could not read html file i am afriaid/h1>"
+                        "</body>"
+                        "</html>";
+        send(socket,content,strlen(content),0);
+        return;
+    }
+
+    char buffer[1024];
+    size_t bytes_read;
+
+    while ((bytes_read = fread(buffer,1, sizeof(buffer), file)) > 0) {
+        send(socket, buffer, bytes_read, 0);
+    }
+
+    fclose(file);
+
+
+
     
 }
 
