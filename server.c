@@ -7,8 +7,29 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
-#define INDEX_FILE "templates/index.html"
+#define INDEX_FILE "index.html"
 
+void handleCommand(char *command) {
+    char *function;
+    char *argument;
+    int func_index = 0;
+    int arg_index = 0;
+
+    int func = 1;
+    for (int i = 0; i<sizeof(command); i++ ) {
+        if (command[i] !=' ') {
+            if (func) {
+                function[func_index++] = command[i];
+            } else {
+                argument[arg_index++] = command[i];
+            }
+        } else {
+            func = 0;
+        }
+    }
+    printf("func: %s, arg: %s\n",function,argument);
+
+}
 int isHTML(FILE *file) {
     char buffer[256];
     fread(buffer,1,sizeof(buffer)-1,file);
@@ -39,6 +60,7 @@ int sendParsedHTML(FILE *file, int socket) {
                 is_command = 0;
                 command[command_index] = '\0';
                 printf("command: %s\n",command);
+                handleCommand(command);
 
                 //TODO process command
                 //printf("execute command:%s\n",command);
@@ -67,27 +89,6 @@ int sendParsedHTML(FILE *file, int socket) {
     return 0;
 }
 
-void handleCommand(char *command) {
-    char *function;
-    char *argument;
-    int func_index = 0;
-    int arg_index = 0;
-
-    int func = 1;
-    for (int i = 0; i<sizeof(command); i++ ) {
-        if (command[i] !=' ') {
-            if (func) {
-                function[func_index++] = command[i];
-            } else {
-                argument[arg_index++] = command[i];
-            }
-        } else {
-            func = 0;
-        }
-    }
-    printf("func: %s, arg: %s\n",function,argument);
-
-}
 
 void sendHttp(int socket, const char *path) {
     FILE *file;
