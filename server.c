@@ -7,11 +7,22 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
-#define INDEX_FILE "index.html"
+#define INDEX_FILE "templates/index.html"
 
 void sendHttp(int socket, const char *path) {
-
-    FILE *file = fopen(path, "r");
+    FILE *file;
+    if (strstr(path,".html")) {
+        char templates[10] = "templates/";
+        char full_path[strlen(templates)+strlen(path)+1];
+        full_path[0] = '\0';
+        strcat(full_path, templates);
+        strcat(full_path, path);
+        printf("path is %s\n",full_path);
+        file = fopen(full_path, "r");
+    }
+    else {
+        file = fopen(path, "r");
+    }
     if (file == NULL){
         char *header = "HTTP/1.1 200 =OK\r\n"
                     "Content-Type: text/html\r\n"
