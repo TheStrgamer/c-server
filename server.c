@@ -11,7 +11,6 @@
 
 void sendHttp(int socket, const char *path) {
 
-    printf("User wants: %s\n",path);
     FILE *file = fopen(path, "r");
     if (file == NULL){
         char *header = "HTTP/1.1 200 =OK\r\n"
@@ -59,12 +58,16 @@ void get_request(int socket) {
     if (path[0] == '/') {
         memmove(path, path+1, strlen(path));
     }
+    printf("Method is: %s\n",method);
+    printf("User wants: %s\n",path);
 
-    if (strlen(path) == 0) {
-        sendHttp(socket, INDEX_FILE);
-        return;
+    if (strstr(method, "GET")!= NULL) {
+        if (strlen(path) == 0) {
+            sendHttp(socket, INDEX_FILE);
+            return;
+        }
+        sendHttp(socket, path);
     }
-    sendHttp(socket, path);
 
 
 }
