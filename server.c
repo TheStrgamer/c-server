@@ -9,10 +9,70 @@
 #define PORT 8080
 #define INDEX_FILE "templates/index.html"
 
+int isHTML(FILE *file) {
+    char buffer[256];
+    fread(buffer,1,sizeof(buffer)-1,file);
+    buffer[sizeof(buffer)-1] = '\0';
+    return strstr(buffer, "<html>") != NULL || strstr(buffer, "<!DOCTYPE html>") != NULL;
+}
+
+int sendParsedHTML(FILE *file, int socket) {
+    char buffer[1024];
+    size_t bytes_read = 0;
+
+    char html[1024];
+
+    char command[256];
+    int is_command=0;
+    int command_index = 0;
+    int html_index = 0;
+
+    while ((bytes_read = fread(buffer,1, sizeof(buffer)-1, file)) > 0) {
+        buffer[bytes_read]='\0';
+
+        for (size_t i = 0; i<bytes_read; i++) {
+            if (buffer[i] == '{') {
+
+                is_command = 1;
+                command_index=0;
+            } else if (buffer[i] == '}') {
+                is_command = 0;
+                command[command_index] = '\0';
+                printf("command: %s\n",command);
+
+                //TODO process command
+                //printf("execute command:%s\n",command);
+            }
+
+            else if (is_command) {
+                if (command_index < sizeof(command)-1) {
+                    command[command_index++] = buffer[i];
+                } else {
+                    printf("Command too long, not allowed\n");
+                    return 1;
+                }
+            } else {
+                if (html_index<sizeof(html)-1) {
+                    html[html_index++] = buffer[i];
+                }
+                //printf("%c",html[i]);
+
+            }
+        }
+    }
+    if (html_index>0) {
+        html[html_index] = '\0';
+        send(socket, html, html_index, 0);
+    }
+    return 0;
+}
+
 void sendHttp(int socket, const char *path) {
     FILE *file;
+    int htmlFile = 0;
     if (strstr(path,".html")) {
-        char templates[10] = "templates/";
+        htmlFile = 1;
+        char templates[12] = "templates/";
         char full_path[strlen(templates)+strlen(path)+1];
         full_path[0] = '\0';
         strcat(full_path, templates);
@@ -23,6 +83,7 @@ void sendHttp(int socket, const char *path) {
     else {
         file = fopen(path, "r");
     }
+
     if (file == NULL){
         char *header = "HTTP/1.1 200 =OK\r\n"
                     "Content-Type: text/html\r\n"
@@ -46,15 +107,19 @@ void sendHttp(int socket, const char *path) {
                     "\r\n";
     send(socket,header,strlen(header),0);
 
-    char buffer[1024];
-    size_t bytes_read;
+    if (htmlFile) {
+        printf("sending html\n");
+        sendParsedHTML(file, socket);
+    } else{
+        printf("Sending non html\n");
+        char buffer[1024];
+        size_t bytes_read;
 
-    while ((bytes_read = fread(buffer,1, sizeof(buffer), file)) > 0) {
-        send(socket, buffer, bytes_read, 0);
+        while ((bytes_read = fread(buffer,1, sizeof(buffer), file)) > 0) {
+            send(socket, buffer, bytes_read, 0);
+        }
     }
-
     fclose(file);
-
 }
 
 void get_request(int socket) {
@@ -69,7 +134,7 @@ void get_request(int socket) {
     if (path[0] == '/') {
         memmove(path, path+1, strlen(path));
     }
-    printf("Method is: %s\n",method);
+    printf("\nMethod is: %s\n",method);
     printf("User wants: %s\n",path);
 
     if (strstr(method, "GET")!= NULL) {
