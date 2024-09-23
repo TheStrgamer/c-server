@@ -9,17 +9,20 @@
 #define PORT 8080
 #define INDEX_FILE "index.html"
 
-void handleCommand(char *command) {
-    char *function;
-    char *argument;
+char* handleCommand(char content[1024], char command[256]) {
+    char function[8];
+    char argument[256];
     int func_index = 0;
     int arg_index = 0;
+    function[0] = '\0';
+    argument[0] = '\0';
 
     int func = 1;
-    for (int i = 0; i<sizeof(command); i++ ) {
+    for (int i = 0; i<strlen(command); i++ ) {
         if (command[i] !=' ') {
             if (func) {
                 function[func_index++] = command[i];
+
             } else {
                 argument[arg_index++] = command[i];
             }
@@ -27,7 +30,51 @@ void handleCommand(char *command) {
             func = 0;
         }
     }
+    function[func_index] = '\0';
+    argument[arg_index] = '\0';
+
     printf("func: %s, arg: %s\n",function,argument);
+    FILE *file;
+
+    if (strstr(argument,".txt")) {
+        file = fopen(argument, "r");
+        if (file == NULL) {
+            printf("Error opening file\n");
+            return "Error";
+        }
+    } else {
+        printf("only txt is supported so far\n");
+    }
+
+    int bytes_read;
+    if (strstr(function,"text")) {
+        content[0] = '\0';
+        char buffer[256];
+        while ((bytes_read = fread(buffer,1, sizeof(buffer)-1, file)) > 0) {
+        strcat(content, buffer);
+
+        }
+        //fread(content,1, sizeof(content)-1, file);
+        fclose(file);
+        return content;
+
+    } else if (strstr(function,"list")) {
+        content[0] = '\0';
+        char buffer[256];
+        while ((bytes_read = fread(buffer,1, sizeof(buffer)-1, file)) > 0) {
+        buffer[bytes_read]='\0';
+        strcat(content, "<li>");
+        strcat(content, buffer);
+        strcat(content, "</li>\n");
+        }
+
+        return content;
+
+    } else {
+        printf("Invalid function %s\n",function);
+        return "Error";
+    }
+
 
 }
 int isHTML(FILE *file) {
@@ -41,7 +88,7 @@ int sendParsedHTML(FILE *file, int socket) {
     char buffer[1024];
     size_t bytes_read = 0;
 
-    char html[1024];
+    char html[2048];
 
     char command[256];
     int is_command=0;
@@ -59,10 +106,15 @@ int sendParsedHTML(FILE *file, int socket) {
             } else if (buffer[i] == '}') {
                 is_command = 0;
                 command[command_index] = '\0';
-                printf("command: %s\n",command);
-                handleCommand(command);
+                
+                char content[1024];
+                content[0] ='\0';
+                handleCommand(content,command);
+                for (int i = 0; i<sizeof(content);i++) {
+                    html[html_index++] = content[i];
 
-                //TODO process command
+                }
+
                 //printf("execute command:%s\n",command);
             }
 
