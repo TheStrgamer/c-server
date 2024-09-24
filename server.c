@@ -9,7 +9,7 @@
 #define PORT 8080
 #define INDEX_FILE "index.html"
 
-char* handleCommand(char content[1024], char command[256]) {
+void handleCommand(char content[1024], char command[256]) {
     char function[8];
     char argument[256];
     int func_index = 0;
@@ -40,7 +40,7 @@ char* handleCommand(char content[1024], char command[256]) {
         file = fopen(argument, "r");
         if (file == NULL) {
             printf("Error opening file\n");
-            return "Error";
+            return;
         }
     } else {
         printf("only txt is supported so far\n");
@@ -48,19 +48,19 @@ char* handleCommand(char content[1024], char command[256]) {
 
     int bytes_read;
     if (strstr(function,"text")) {
-        content[0] = '\0';
         char buffer[256];
+        memset(buffer,0,sizeof(buffer));
         while ((bytes_read = fread(buffer,1, sizeof(buffer)-1, file)) > 0) {
         strcat(content, buffer);
 
         }
         //fread(content,1, sizeof(content)-1, file);
         fclose(file);
-        return content;
+        return;
 
     } else if (strstr(function,"list")) {
-        content[0] = '\0';
         char buffer[256];
+        memset(buffer,0,sizeof(buffer));
         while ((bytes_read = fread(buffer,1, sizeof(buffer)-1, file)) > 0) {
         buffer[bytes_read]='\0';
         strcat(content, "<li>");
@@ -68,11 +68,11 @@ char* handleCommand(char content[1024], char command[256]) {
         strcat(content, "</li>\n");
         }
 
-        return content;
+        return;
 
     } else {
         printf("Invalid function %s\n",function);
-        return "Error";
+        return;
     }
 
 
@@ -108,7 +108,7 @@ int sendParsedHTML(FILE *file, int socket) {
                 command[command_index] = '\0';
                 
                 char content[1024];
-                content[0] ='\0';
+                memset(content,0,sizeof(content));
                 handleCommand(content,command);
                 for (int i = 0; i<sizeof(content);i++) {
                     html[html_index++] = content[i];
